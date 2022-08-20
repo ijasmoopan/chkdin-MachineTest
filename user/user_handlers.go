@@ -1,6 +1,8 @@
 package user
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 
@@ -22,17 +24,27 @@ func (repo *Repo) Login(w http.ResponseWriter, r *http.Request) {
 		responseBadRequest(w, message)
 		return
 	}
+	userLogin.Password = hex.EncodeToString(md5.New().Sum([]byte(userLogin.Password)))
 	// checking user is valid or not
-	err := repo.user.DBValidateUser(userLogin)
+	user, err := repo.user.DBValidateUser(userLogin)
 	if err != nil {
 		message = "Incorrect email or password"
 		responseBadRequest(w, message)
 		return
 	}
-	message = "Successfully logged in"
+
+	token, err := GeneratingToken(user.ID)
+	if err != nil {
+		message = "Some error happened"
+		responseBadRequest(w, message)
+		return
+	}
+	message = map[string]interface{}{
+		"message": "Successfully logged in",
+		"token": token,
+	}
 	responseOK(w, message)
 }
-
 
 func (repo *Repo) PostUser(w http.ResponseWriter, r *http.Request) {
 
@@ -50,6 +62,7 @@ func (repo *Repo) PostUser(w http.ResponseWriter, r *http.Request) {
 	}
 	// Adding new user
 	if flag {
+		userSignUp.Password = hex.EncodeToString(md5.New().Sum([]byte(userSignUp.Password)))
 		err := repo.user.DBAddUser(userSignUp)
 		if err != nil {
 			message = err
@@ -66,7 +79,7 @@ func (repo *Repo) PostUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (repo *Repo) GetUser(w http.ResponseWriter, r *http.Request) {
-	
+
 	email := chi.URLParam(r, "email")
 	var message interface{}
 
@@ -125,4 +138,3 @@ func (repo *Repo) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	message = "User deleted"
 	responseOK(w, message)
 }
-

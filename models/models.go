@@ -16,3 +16,5 @@ type UserResponse struct {
 	ID int `json:"user_id"`
 	Email string `json:"email"`
 }
+
+type CtxKey struct{}

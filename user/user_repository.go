@@ -22,6 +22,7 @@ func (user Model) DBAddUser(usr models.User) error {
 
 	_, err := user.DB.Exec(sqlString, usr.Email, usr.Password)
 	if err != nil {
+		log.Println("user siginin:", usr)
 		log.Println("Error happened while adding new user", err)
 		return err
 	}
@@ -43,23 +44,21 @@ func (user Model) DBValidateEmail(email string) (bool, error) {
 	}
 }
 
-func (user Model) DBValidateUser(userLogin models.User)(error){
-	var userValid models.User
+func (user Model) DBValidateUser(userLogin models.User)(models.UserResponse, error){
+	var userValid models.UserResponse
 	sqlString := `SELECT id, 
-						email,
-						password
+						email
 					FROM users
 						WHERE email = $1
 							AND password = $2;`
 
 	row := user.DB.QueryRow(sqlString, userLogin.Email, userLogin.Password)
 	err := row.Scan(&userValid.ID,
-					&userValid.Email,
-					&userValid.Password)
+					&userValid.Email)
 	if err != nil {
-		return err
+		return userValid, err
 	}
-	return  nil
+	return userValid, nil
 }
 
 func (user Model) DBGetUser(email string)(models.UserResponse, error){
@@ -118,4 +117,19 @@ func (user Model) DBDeleteUser(email string)(error){
 		return err
 	}
 	return nil
+}
+
+func (user Model) DBAuthUser(id float64)(models.UserResponse, error){
+	var userAuth models.UserResponse
+	sqlString := `SELECT id,
+						email
+					FROM users
+					WHERE id = $1`
+	row := user.DB.QueryRow(sqlString, id)
+	err := row.Scan(&userAuth.ID,
+					&userAuth.Email)
+	if err != nil {
+		return userAuth, err
+	}
+	return userAuth, nil
 }
